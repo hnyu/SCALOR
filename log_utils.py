@@ -57,18 +57,20 @@ def log_summary(args, writer, imgs, y_seq, global_step, log_disc_list,
                         writer.add_histogram(f'{prefix}_inside_value_scalor_{j}/{k}', v.cpu().detach().numpy(),
                                              global_step)
 
+        cells = args.num_cell_h * args.num_cell_w
+
         log_disc = {
-            'z_what': log_disc_list[j]['z_what'].view(-1, 8 * 8, z_what_dim),
+            'z_what': log_disc_list[j]['z_what'].view(-1, cells, z_what_dim),
             'z_where_scale':
-                log_disc_list[j]['z_where'].view(-1, 8 * 8, z_where_scale_dim + z_where_shift_dim)[:, :,
+                log_disc_list[j]['z_where'].view(-1, cells, z_where_scale_dim + z_where_shift_dim)[:, :,
                 :z_where_scale_dim],
             'z_where_shift':
-                log_disc_list[j]['z_where'].view(-1, 8 * 8, z_where_scale_dim + z_where_shift_dim)[:, :,
+                log_disc_list[j]['z_where'].view(-1, cells, z_where_scale_dim + z_where_shift_dim)[:, :,
                 z_where_scale_dim:],
             'z_pres': log_disc_list[j]['z_pres'].permute(0, 2, 3, 1),
             'z_pres_probs': torch.sigmoid(log_disc_list[j]['z_pres_logits']).permute(0, 2, 3, 1),
-            'z_what_std': log_disc_list[j]['z_what_std'].view(-1, 8 * 8, z_what_dim),
-            'z_what_mean': log_disc_list[j]['z_what_mean'].view(-1, 8 * 8, z_what_dim),
+            'z_what_std': log_disc_list[j]['z_what_std'].view(-1, cells, z_what_dim),
+            'z_what_mean': log_disc_list[j]['z_what_mean'].view(-1, cells, z_what_dim),
             'z_where_scale_std':
                 log_disc_list[j]['z_where_std'].permute(0, 2, 3, 1)[:, :, :z_where_scale_dim],
             'z_where_scale_mean':
@@ -77,25 +79,25 @@ def log_summary(args, writer, imgs, y_seq, global_step, log_disc_list,
                 log_disc_list[j]['z_where_std'].permute(0, 2, 3, 1)[:, :, z_where_scale_dim:],
             'z_where_shift_mean':
                 log_disc_list[j]['z_where_mean'].permute(0, 2, 3, 1)[:, :, z_where_scale_dim:],
-            'glimpse': log_disc_list[j]['x_att'].view(-1, 8 * 8, 3, glimpse_size, glimpse_size) \
+            'glimpse': log_disc_list[j]['x_att'].view(-1, cells, 3, glimpse_size, glimpse_size) \
                 if prefix != 'generate' else None,
-            'glimpse_recon': log_disc_list[j]['y_att'].view(-1, 8 * 8, 3, glimpse_size, glimpse_size),
+            'glimpse_recon': log_disc_list[j]['y_att'].view(-1, cells, 3, glimpse_size, glimpse_size),
             'prior_z_pres_prob': log_disc_list[j]['prior_z_pres_prob'].unsqueeze(0),
             'o_each_cell': spatial_transform(log_disc_list[j]['o_att'], log_disc_list[j]['z_where'],
-                                             (8 * 8 * bs, 3, img_h, img_w),
-                                             inverse=True).view(-1, 8 * 8, 3, img_h, img_w),
+                                             (cells * bs, 3, img_h, img_w),
+                                             inverse=True).view(-1, cells, 3, img_h, img_w),
             'alpha_hat_each_cell': spatial_transform(log_disc_list[j]['alpha_att_hat'],
                                                      log_disc_list[j]['z_where'],
-                                                     (8 * 8 * bs, 1, img_h, img_w),
-                                                     inverse=True).view(-1, 8 * 8, 1, img_h, img_w),
+                                                     (cells * bs, 1, img_h, img_w),
+                                                     inverse=True).view(-1, cells, 1, img_h, img_w),
             'alpha_each_cell': spatial_transform(log_disc_list[j]['alpha_att'], log_disc_list[j]['z_where'],
-                                                 (8 * 8 * bs, 1, img_h, img_w),
-                                                 inverse=True).view(-1, 8 * 8, 1, img_h, img_w),
+                                                 (cells * bs, 1, img_h, img_w),
+                                                 inverse=True).view(-1, cells, 1, img_h, img_w),
             'y_each_cell': (log_disc_list[j]['y_each_cell'] * log_disc_list[j]['z_pres'].
-                            view(-1, 1, 1, 1)).view(-1, 8 * 8, 3, img_h, img_w),
-            'z_depth': log_disc_list[j]['z_depth'].view(-1, 8 * 8, z_depth_dim),
-            'z_depth_std': log_disc_list[j]['z_depth_std'].view(-1, 8 * 8, z_depth_dim),
-            'z_depth_mean': log_disc_list[j]['z_depth_mean'].view(-1, 8 * 8, z_depth_dim),
+                            view(-1, 1, 1, 1)).view(-1, cells, 3, img_h, img_w),
+            'z_depth': log_disc_list[j]['z_depth'].view(-1, cells, z_depth_dim),
+            'z_depth_std': log_disc_list[j]['z_depth_std'].view(-1, cells, z_depth_dim),
+            'z_depth_mean': log_disc_list[j]['z_depth_mean'].view(-1, cells, z_depth_dim),
             'z_pres_logits': log_disc_list[j]['z_pres_logits'].permute(0, 2, 3, 1),
             'z_pres_y': log_disc_list[j]['z_pres_y'].permute(0, 2, 3, 1)
         }

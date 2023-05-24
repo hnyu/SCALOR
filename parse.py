@@ -62,4 +62,9 @@ def parse(parser):
 
     args.color_t = torch.rand(args.color_num, 3)
 
+    if "movi_d" in args.data_dir or "movi_e" in args.data_dir:
+        args.max_num_obj = 23
+
+    print("Max obj instances: ", args.max_num_obj)
+
     return args

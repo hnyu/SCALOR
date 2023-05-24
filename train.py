@@ -61,7 +61,7 @@ def main(args):
         end_time = time.time()
 
 
-        for batch_idx, (sample, counting_gt) in enumerate(train_loader):
+        for batch_idx, (sample, seg, counting_gt) in enumerate(train_loader):
 
             tau = np.exp(global_step * log_tau_gamma)
             tau = max(tau, args.tau_end)

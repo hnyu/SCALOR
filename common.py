@@ -7,7 +7,7 @@ img_h = 128
 img_w = img_h
 img_encode_dim = 64
 z_depth_dim = 1
-bg_what_dim = 10
+bg_what_dim = 4
 
 temporal_rnn_hid_dim = 128
 temporal_rnn_out_dim = temporal_rnn_hid_dim
@@ -43,8 +43,8 @@ conv_lstm_hid_dim = 64
 
 cfg = {
     'num_img_summary': 3,
-    'num_cell_h': 8,
-    'num_cell_w': 8,
+    'num_cell_h': 4,
+    'num_cell_w': 4,
     'phase_conv_lstm': True,
     'phase_no_background': False,
     'phase_eval': True,
@@ -58,13 +58,13 @@ cfg = {
     'using_bg_sbd': False,
     'gen_disc_pres_probs': 0.1,
     'observe_frames': 5,
-    'size_anc': 0.1,
-    'var_s': 0.03,
-    'ratio_anc': 2.5,
-    'var_anc': 0.5,
+    'size_anc': 0.2,   # object scale mean
+    'var_s': 0.1,      # object scale var
+    'ratio_anc': 1.,   # h-w ratio mean
+    'var_anc': 0.5,    # h-w ratio var
     'train_station_cropping_origin': 240,
     'color_num': 500,
-    'explained_ratio_threshold': 0.3,
+    'explained_ratio_threshold': 0.2, # proposal rejection threshold
     'tau_imp': 0.25,
     'z_pres_anneal_end_value': 1e-3,
     'phase_do_remove_detach': True,
