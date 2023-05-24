@@ -42,6 +42,8 @@ def parse(parser):
                         help='Multi-GPUs')
     parser.add_argument('--phase-simplify-summary', default=True, type=bool,
                         help='Only show image in summary log.')
+    parser.add_argument('--max-num-obj', default=10, type=int,
+                        help='max number of obj instances in a video')
 
     args = parser.parse_args()
 

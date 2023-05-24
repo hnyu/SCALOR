@@ -1,6 +1,5 @@
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:11.4.0-cudnn8-devel-ubuntu20.04
 
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
 
 RUN apt update && apt install -y wget
 
@@ -50,4 +49,5 @@ RUN conda env update --file /tmp/environment.yml && \
 
 # Need to install torch and torchvision separately. Their versions are slightly
 # higher than the author provided ones.
-RUN conda install pytorch=1.6.0 torchvision=0.7.0 cudatoolkit=10.2 -c pytorch
+RUN conda install pip
+RUN /opt/conda/bin/pip install torch==1.11.0 torchvision==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu113

@@ -7,7 +7,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 import torch.optim
 from torch.nn.utils import clip_grad_norm_
-from data import TrainStation
+from movi_data_set import MoviDataset
 from log_utils import log_summary
 from utils import save_ckpt, load_ckpt, print_scalor
 from common import *
@@ -30,7 +30,7 @@ def main(args):
     device = torch.device(
        "cuda" if not args.nocuda and torch.cuda.is_available() else "cpu")
 
-    train_data = TrainStation(args=args, train=True)
+    train_data = MoviDataset(args=args, train=True)
 
     train_loader = DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, drop_last=True)
@@ -123,7 +123,7 @@ def main(args):
 
                 last_count = local_count
 
-            if global_step % args.generate_freq == 0:
+            if False: #global_step % args.generate_freq == 0:
                 ####################################### do generation ####################################
                 model.eval()
                 with torch.no_grad():

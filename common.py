@@ -25,7 +25,7 @@ prior_rnn_out_dim = prior_rnn_hid_dim
 DEBUG = False
 
 object_act_size = 21
-seq_len = 10
+seq_len = 4
 phase_obj_num_contrain = True
 phase_rejection = True
 
