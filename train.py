@@ -18,6 +18,72 @@ from tensorboardX import SummaryWriter
 from scalor import SCALOR
 
 
+def compute_ari(seg,
+                gt_seg,
+                num_groups,
+                ignore_background=True):
+    """Converted from the JAX version:
+    https://github.com/google-research/slot-attention-video/blob/main/savi/lib/metrics.py#L111
+    """
+    # Following SAVI, it may be that num_groups <= max(segmentation). We prune
+    # out extra objects here. For example, movi_e has an instance id of 64 in an
+    # outlier video.
+    # https://github.com/google-research/slot-attention-video/blob/main/savi/lib/preprocessing.py#L414
+    gt_seg = torch.where(gt_seg >= num_groups, torch.zeros_like(gt_seg), gt_seg)
+    seg = torch.where(seg >= num_groups, torch.zeros_like(seg), seg)
+
+    seg = torch.nn.functional.one_hot(seg, num_groups).to(torch.float32)
+    gt_seg = torch.nn.functional.one_hot(gt_seg, num_groups).to(torch.float32)
+
+    if ignore_background:
+        # remove background (id=0).
+        gt_seg = gt_seg[..., 1:]
+
+    N = torch.einsum('bthwc,bthwk->bck', gt_seg, seg)  # [B,c,k]
+    A = N.sum(-1)  # row-sum  [B,c]
+    B = N.sum(-2)  # col-sum  [B,k]
+    num_points = A.sum(1)  # [B]
+
+    rindex = (N * (N - 1)).sum((1, 2))  # [B]
+    aindex = (A * (A - 1)).sum(1)  # [B]
+    bindex = (B * (B - 1)).sum(1)  # [B]
+
+    expected_rindex = aindex * bindex / torch.clamp(
+        num_points * (num_points - 1), min=1)
+    max_rindex = (aindex + bindex) / 2
+    denominator = max_rindex - expected_rindex
+    ari = (rindex - expected_rindex) / denominator
+
+    # There are two cases for which the denominator can be zero:
+    # 1. If both label_pred and label_true assign all pixels to a single cluster.
+    #    (max_rindex == expected_rindex == rindex == num_points * (num_points-1))
+    # 2. If both label_pred and label_true assign max 1 point to each cluster.
+    #    (max_rindex == expected_rindex == rindex == 0)
+    # In both cases, we want the ARI score to be 1.0:
+    return torch.where(denominator > 0, ari, torch.ones_like(ari))
+
+
+def evaluation(model, args, device, eval_loader, writer, global_step):
+    model.eval()
+    with torch.no_grad():
+        aris, fg_aris = [], []
+        for sample, gt_seg, _ in eval_loader:
+            imgs = sample.to(device)
+            gt_seg = gt_seg.to(device).long()
+            seg = model(imgs)[1]
+            gt_seg = gt_seg.squeeze(2)
+            seg = seg.squeeze(2)
+            fg_ari = compute_ari(seg, gt_seg, num_groups=50)
+            ari = compute_ari(seg, gt_seg, num_groups=50, ignore_background=False)
+            fg_aris.append(fg_ari)
+            aris.append(ari)
+        mean_fg_ari = sum(fg_aris) / len(fg_aris)
+        mean_ari = sum(aris) / len(aris)
+        writer.add_scalar('eval/fg_ari', mean_fg_ari.mean(), global_step=global_step)
+        writer.add_scalar('eval/ari', mean_ari.mean(), global_step=global_step)
+    model.train()
+
+
 def main(args):
 
     args.color_t = torch.rand(700, 3)
@@ -31,9 +97,12 @@ def main(args):
        "cuda" if not args.nocuda and torch.cuda.is_available() else "cpu")
 
     train_data = MoviDataset(args=args, train=True)
+    eval_data = MoviDataset(args=args, train=False)
 
     train_loader = DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, drop_last=True)
+    eval_loader = DataLoader(
+        eval_data, batch_size=50, shuffle=False, num_workers=args.workers, drop_last=False)
 
     num_train = len(train_data)
 
@@ -75,7 +144,7 @@ def main(args):
 
             imgs = sample.to(device)
 
-            y_seq, log_like, kl_z_what, kl_z_where, kl_z_depth, \
+            y_seq, seg_seq, log_like, kl_z_what, kl_z_where, kl_z_depth, \
             kl_z_pres, kl_z_bg, log_imp, counting, \
             log_disc_list, log_prop_list, scalor_log_list = model(imgs)
 
@@ -123,19 +192,8 @@ def main(args):
 
                 last_count = local_count
 
-            if False: #global_step % args.generate_freq == 0:
-                ####################################### do generation ####################################
-                model.eval()
-                with torch.no_grad():
-                    args.phase_generate = True
-                    y_seq, log_like, kl_z_what, kl_z_where, kl_z_depth, \
-                    kl_z_pres, kl_z_bg, log_imp, counting, \
-                    log_disc_list, log_prop_list, scalor_log_list = model(imgs)
-                    args.phase_generate = False
-                    log_summary(args, writer, imgs, y_seq, global_step, log_disc_list,
-                                log_prop_list, scalor_log_list, prefix='generate')
-                model.train()
-                ####################################### end generation ####################################
+            if global_step % args.eval_freq == 0:
+                evaluation(model, args, device, eval_loader, writer, global_step)
 
             if global_step % args.save_epoch_freq == 0 or global_step == 1:
                 save_ckpt(args.ckpt_dir, model, optimizer, global_step, epoch,

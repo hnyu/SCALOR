@@ -28,6 +28,7 @@ def log_summary(args, writer, imgs, y_seq, global_step, log_disc_list,
     bg_list = []
     alpha_map_list = []
     x_mask_color_list = []
+    fg_mask_list = []
     # for each time step
     for j in range(imgs.size(1)):
 
@@ -42,6 +43,7 @@ def log_summary(args, writer, imgs, y_seq, global_step, log_disc_list,
         bg_list.append(scalor_log_list[j]['bg'][:args.num_img_summary])
         alpha_map_list.append(scalor_log_list[j]['alpha_map'][:args.num_img_summary])
         x_mask_color_list.append(scalor_log_list[j]['x_mask_color'][:args.num_img_summary])
+        fg_mask_list.append(scalor_log_list[j]['fg_mask'][:args.num_img_summary])
 
         if prefix == 'train' and not args.phase_simplify_summary:
             writer.add_histogram(f'{prefix}_inside_value_scalor_{j}/importance_map_norm',
@@ -293,6 +295,10 @@ def log_summary(args, writer, imgs, y_seq, global_step, log_disc_list,
     x_mask_color = torch.stack(x_mask_color_list, dim=1)
     grid_image = make_grid(x_mask_color.view(-1, 3, img_h, img_w), seq_len, normalize=False, pad_value=1)
     writer.add_image(f'{prefix}_scalor/9-x-mask-color', grid_image, global_step)
+
+    fg_mask = torch.stack(fg_mask_list, dim=1)
+    grid_image = make_grid(fg_mask.reshape(-1, 3, img_h, img_w), seq_len, normalize=False, pad_value=1)
+    writer.add_image(f'{prefix}_scalor/10-fg-mask', grid_image, global_step)
 
     return
 

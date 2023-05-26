@@ -107,6 +107,7 @@ class SCALOR(nn.Module):
         log_imp_all = seq.new_zeros(bs, seq_len)
         log_like_all = seq.new_zeros(bs, seq_len)
         y_seq = seq.new_zeros(bs, seq_len, 3, img_h, img_w)
+        seg_seq = seq.new_zeros(bs, seq_len, 1, img_h, img_w).long()
 
         log_disc_list = []
         log_prop_list = []
@@ -337,18 +338,37 @@ class SCALOR(nn.Module):
 
             lengths = torch.sum(z_mask_pre, dim=(1, 2)).view(bs)
 
+            if ids_prop_disc.size(1) < importance_map_norm.size(1):
+                ids_prop_disc = torch.cat((x.new_zeros(ids_prop_disc[:, 0:1].size()), ids_prop_disc), dim=1)
+
+            # Compute the segmentation result
+            fg_mask = (alpha_map > 0.3) # [bs,1,h,w]
+            # Check the object has alpha greater than a threshold
+            seg_score = ((torch.cat((alpha_map_prop, alpha_map_disc), dim=1) > 0.3)
+                         * importance_map_norm.detach())  # [bs, N, 1, img_h, img_w]
+            seg = torch.argmax(seg_score, dim=1) # [bs,1,img_h,img_w]
+            ids_map = ids_prop_disc.reshape(*ids_prop_disc.shape, 1, 1)
+            ids_map = ids_map.expand(-1, -1, *seg.shape[-2:]) # [bs,N,h,w]
+            seg = torch.gather(ids_map, dim=1, index=seg).long()
+            seg = fg_mask.to(seg) * seg
+            seg_seq[:, i] = seg
+
             scalor_step_log = {}
             if self.args.log_phase:
-                if ids_prop_disc.size(1) < importance_map_norm.size(1):
-                    ids_prop_disc = torch.cat((x.new_zeros(ids_prop_disc[:, 0:1].size()), ids_prop_disc), dim=1)
+                # ids_prop_disc: (bs, num_obj_prop + num_cell_h * num_cell_w)
                 id_color = self.color_t[ids_prop_disc.view(-1).long() % self.args.color_num]
 
                 # (bs, num_obj_prop + num_cell_h * num_cell_w, 3, 1, 1)
                 id_color = id_color.view(bs, -1, 3, 1, 1)
+                # alpha_map_prop: (bs, num_obj_prop, 1, img_h, img_w)
+                # alpha_map_disc: (bs, num_cell_h * num_cell_w, 1, img_h, img_w)
                 # (bs, num_obj_prop + num_cell_h * num_cell_w, 3, img_h, img_w)
                 id_color_map = (torch.cat((alpha_map_prop, alpha_map_disc), dim=1) > .3).float() * id_color
                 mask_color = (id_color_map * importance_map_norm.detach()).sum(dim=1)
                 x_mask_color = x - 0.7 * (alpha_map > .3).float() * (x - mask_color)
+
+                fg_mask = self.color_t[seg.squeeze(1)].permute(0, 3, 1, 2)
+
                 scalor_step_log = {
                     'y_each_obj': y_each_obj.cpu().detach(),
                     'importance_map_norm': importance_map_norm.cpu().detach(),
@@ -356,6 +376,7 @@ class SCALOR(nn.Module):
                     'bg': bg.cpu().detach(),
                     'alpha_map': alpha_map.cpu().detach(),
                     'x_mask_color': x_mask_color.cpu().detach(),
+                    'fg_mask': fg_mask.cpu().detach(),
                     'mask_color': mask_color.cpu().detach(),
                     'p_bg_what_mean': p_bg_what_mean.cpu().detach() if i > 0 else self.p_bg_what_t1.mean.cpu().detach(),
                     'p_bg_what_std': p_bg_what_std.cpu().detach() if i > 0 else self.p_bg_what_t1.stddev.cpu().detach(),
@@ -382,6 +403,7 @@ class SCALOR(nn.Module):
         counting = torch.stack(counting_list, dim=1)
 
         return y_seq, \
+               seg_seq, \
                log_like_all.flatten(start_dim=1).mean(dim=1), \
                kl_z_what_all.flatten(start_dim=1).mean(dim=1), \
                kl_z_where_all.flatten(start_dim=1).mean(dim=1), \

@@ -32,8 +32,8 @@ class MoviDataset(Dataset):
             # For training, any segment of length 'seq_len' of a video can be used
             self.num_data = len(self._training_videos) * (self.video_len - seq_len + 1)
         else:
-            # For testing, each video is divided into non-overlapped segments
-            self.num_data = len(self._val_videos) * (self.video_len // seq_len)
+            # For testing, each video is a sample
+            self.num_data = len(self._val_videos)
 
         print("Num samples: ", self.num_data)
 
@@ -44,14 +44,14 @@ class MoviDataset(Dataset):
             with open(self._training_videos[video_i], 'rb') as f:
                 video = pickle.load(f)
         else:
-            video_i = index // (self.video_len // seq_len)
-            frame_i = index % (self.video_len // seq_len) * seq_len
+            video_i = index
+            frame_i = 0
             with open(self._val_videos[video_i], 'rb') as f:
                 video = pickle.load(f)
 
         image_list = []
         seg_list = []
-        for i in range(seq_len):
+        for i in range(seq_len if self.phase_train else self.video_len):
             im = video['video'][i + frame_i]
             im = Image.fromarray(im)
             im = im.resize((img_h, img_w), resample=Image.BILINEAR)

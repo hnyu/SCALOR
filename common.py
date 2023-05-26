@@ -2,7 +2,7 @@ z_what_dim = 64
 z_where_scale_dim = 2  # sx sy
 z_where_shift_dim = 2  # tx ty
 z_pres_dim = 1
-glimpse_size = 64
+glimpse_size = 32
 img_h = 128
 img_w = img_h
 img_encode_dim = 64
@@ -25,7 +25,7 @@ prior_rnn_out_dim = prior_rnn_hid_dim
 DEBUG = False
 
 object_act_size = 21
-seq_len = 4
+seq_len = 6
 phase_obj_num_contrain = True
 phase_rejection = True
 
