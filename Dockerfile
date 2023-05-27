@@ -50,4 +50,4 @@ RUN conda env update --file /tmp/environment.yml && \
 # Need to install torch and torchvision separately. Their versions are slightly
 # higher than the author provided ones.
 RUN conda install pip
-RUN /opt/conda/bin/pip install torch==1.11.0 torchvision==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu113
+RUN /opt/conda/bin/pip install torch==1.11.0 torchvision==0.12.0 tensorboard==2.6.0 --extra-index-url https://download.pytorch.org/whl/cu113
