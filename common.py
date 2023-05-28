@@ -7,7 +7,7 @@ img_h = 128
 img_w = img_h
 img_encode_dim = 64
 z_depth_dim = 1
-bg_what_dim = 4
+bg_what_dim = 2
 
 temporal_rnn_hid_dim = 128
 temporal_rnn_out_dim = temporal_rnn_hid_dim
@@ -43,8 +43,8 @@ conv_lstm_hid_dim = 64
 
 cfg = {
     'num_img_summary': 3,
-    'num_cell_h': 4,
-    'num_cell_w': 4,
+    'num_cell_h': 8,
+    'num_cell_w': 8,
     'phase_conv_lstm': True,
     'phase_no_background': False,
     'phase_eval': True,

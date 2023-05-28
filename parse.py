@@ -12,7 +12,7 @@ def parse(parser):
                         help='number of total epochs to run (default: 4000)')
     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                         help='manual epoch number (useful on restarts)')
-    parser.add_argument('-b', '--batch-size', default=40, type=int,
+    parser.add_argument('-b', '--batch-size', default=20, type=int,
                         metavar='N', help='mini-batch size (default: 20)')
     parser.add_argument('--lr', '--learning-rate', default=4e-5, type=float,
                         metavar='LR', help='initial learning rate')
@@ -22,7 +22,7 @@ def parse(parser):
                         metavar='N', help='print batch frequency (default: 100)')
     parser.add_argument('--generate-freq', '-gp', default=500, type=int,
                         metavar='N', help='generation frequency (on training set) (default: 500)')
-    parser.add_argument('--eval-freq', '-ef', default=500, type=int,
+    parser.add_argument('--eval-freq', '-ef', default=2000, type=int,
                         metavar='N', help='eval frequency (on val set) (default: 500)')
     parser.add_argument('--save-epoch-freq', '-s', default=5000, type=int,
                         metavar='N', help='save epoch frequency (default: 5000)')

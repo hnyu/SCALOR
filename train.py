@@ -67,7 +67,9 @@ def evaluation(model, args, device, eval_loader, writer, global_step):
     model.eval()
     with torch.no_grad():
         aris, fg_aris = [], []
+        total = 0
         for sample, gt_seg, _ in eval_loader:
+            total += sample.shape[0]
             imgs = sample.to(device)
             gt_seg = gt_seg.to(device).long()
             seg = model(imgs)[1]
@@ -81,6 +83,7 @@ def evaluation(model, args, device, eval_loader, writer, global_step):
         mean_ari = sum(aris) / len(aris)
         writer.add_scalar('eval/fg_ari', mean_fg_ari.mean(), global_step=global_step)
         writer.add_scalar('eval/ari', mean_ari.mean(), global_step=global_step)
+        print("Total evaluated: ", total)
     model.train()
 
 
@@ -102,7 +105,7 @@ def main(args):
     train_loader = DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, drop_last=True)
     eval_loader = DataLoader(
-        eval_data, batch_size=50, shuffle=False, num_workers=args.workers, drop_last=False)
+        eval_data, batch_size=10, shuffle=False, num_workers=args.workers, drop_last=False)
 
     num_train = len(train_data)
 
